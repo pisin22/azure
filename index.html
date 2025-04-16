@@ -22,14 +22,11 @@
       max-width: 600px;
       margin: auto;
     }
-    .saldo {
-      margin-bottom: 20px;
-      font-size: 1.2em;
-    }
-    .aposta {
+    .formulario, .saldo, .aposta, .historico {
       background: #222;
       padding: 20px;
       border-radius: 10px;
+      margin-bottom: 20px;
     }
     input, select, button {
       padding: 10px;
@@ -46,14 +43,16 @@
     button:hover {
       background: #218838;
     }
-    .historico {
-      margin-top: 30px;
-    }
     .historico-item {
       background: #333;
       margin: 5px 0;
       padding: 10px;
       border-radius: 5px;
+    }
+    .roleta-resultado {
+      font-size: 2em;
+      text-align: center;
+      margin-top: 10px;
     }
   </style>
 </head>
@@ -62,40 +61,55 @@
     <h1>PisinBet</h1>
   </header>
   <main>
-    <div class="saldo" id="saldo">Saldo: R$ 1000</div>
-
-    <div class="aposta">
-      <h2>Fazer uma Aposta - Jogo do Tigrinho</h2>
-      <label>Escolha o vencedor:</label>
-      <select id="escolhaTigrinho">
-        <option value="Tigre">Tigre</option>
-        <option value="Búfalo">Búfalo</option>
-      </select>
-      <label>Valor da aposta:</label>
-      <input type="number" id="valorApostaTigrinho" placeholder="Digite o valor" />
-      <button onclick="apostarTigrinho()">Apostar no Tigrinho</button>
+    <div class="formulario" id="telaLogin">
+      <h2>Login</h2>
+      <input type="email" id="emailLogin" placeholder="Email" />
+      <input type="password" id="senhaLogin" placeholder="Senha" />
+      <button onclick="login()">Entrar</button>
+      <p>Ainda não tem conta? <a href="#" onclick="mostrarCadastro()">Cadastre-se</a></p>
     </div>
 
-    <div class="aposta">
-      <h2>Fazer uma Aposta - Time A vs Time B</h2>
-      <label>Escolha o vencedor:</label>
-      <select id="escolha">
-        <option value="Time A">Time A</option>
-        <option value="Time B">Time B</option>
-      </select>
-      <label>Valor da aposta:</label>
-      <input type="number" id="valorAposta" placeholder="Digite o valor" />
-      <button onclick="apostar()">Apostar</button>
+    <div class="formulario" id="telaCadastro" style="display:none">
+      <h2>Cadastro</h2>
+      <input type="email" id="emailCadastro" placeholder="Email" />
+      <input type="password" id="senhaCadastro" placeholder="Senha" />
+      <button onclick="cadastrar()">Cadastrar</button>
+      <p>Já tem conta? <a href="#" onclick="mostrarLogin()">Fazer login</a></p>
     </div>
 
-    <div class="historico">
-      <h2>Histórico</h2>
-      <div id="historico"></div>
+    <div id="telaJogo" style="display:none">
+      <div class="saldo" id="saldo">Saldo: R$ 1000</div>
+
+      <div class="aposta">
+        <h2>Fazer uma Aposta</h2>
+        <label>Escolha o vencedor:</label>
+        <select id="escolha">
+          <option value="Time A">Time A</option>
+          <option value="Time B">Time B</option>
+        </select>
+        <label>Valor da aposta:</label>
+        <input type="number" id="valorAposta" placeholder="Digite o valor" />
+        <button onclick="apostar()">Apostar</button>
+      </div>
+
+      <div class="aposta">
+        <h2>Caça-níquel - Roleta do Tigrinho</h2>
+        <label>Valor da aposta:</label>
+        <input type="number" id="valorRoleta" placeholder="Digite o valor" />
+        <button onclick="jogarRoleta()">Girar Roleta</button>
+        <div class="roleta-resultado" id="roletaResultado"></div>
+      </div>
+
+      <div class="historico">
+        <h2>Histórico</h2>
+        <div id="historico"></div>
+      </div>
     </div>
   </main>
 
   <script>
     let saldo = 1000;
+    const simbolos = ["7️⃣", "🍎", "🔥", "💧", "🐯", "🪙"];
 
     function atualizarSaldo() {
       document.getElementById("saldo").innerText = `Saldo: R$ ${saldo}`;
@@ -105,75 +119,94 @@
       const escolha = document.getElementById("escolha").value;
       const valor = parseFloat(document.getElementById("valorAposta").value);
 
-      if (isNaN(valor) || valor <= 0) {
-        alert("Digite um valor válido para apostar.");
-        return;
-      }
-
-      if (valor > saldo) {
-        alert("Saldo insuficiente.");
+      if (isNaN(valor) || valor <= 0 || valor > saldo) {
+        alert("Valor inválido ou saldo insuficiente.");
         return;
       }
 
       const vencedor = Math.random() < 0.5 ? "Time A" : "Time B";
-      let resultado = "";
+      const resultado = (escolha === vencedor)
+        ? `Você GANHOU! (${escolha} venceu)`
+        : `Você PERDEU! (${vencedor} venceu)`;
 
-      if (escolha === vencedor) {
-        saldo += valor;
-        resultado = `Você GANHOU! (${escolha} venceu)`;
-      } else {
-        saldo -= valor;
-        resultado = `Você PERDEU! (${vencedor} venceu)`;
-      }
-
+      saldo += (escolha === vencedor) ? valor : -valor;
       atualizarSaldo();
-
-      const historico = document.getElementById("historico");
-      const item = document.createElement("div");
-      item.className = "historico-item";
-      item.innerText = `${resultado} | Valor: R$ ${valor}`;
-      historico.prepend(item);
-
+      adicionarHistorico(resultado, valor);
       document.getElementById("valorAposta").value = "";
     }
 
-    function apostarTigrinho() {
-      const escolha = document.getElementById("escolhaTigrinho").value;
-      const valor = parseFloat(document.getElementById("valorApostaTigrinho").value);
-
-      if (isNaN(valor) || valor <= 0) {
-        alert("Digite um valor válido para apostar.");
+    function jogarRoleta() {
+      const valor = parseFloat(document.getElementById("valorRoleta").value);
+      if (isNaN(valor) || valor <= 0 || valor > saldo) {
+        alert("Valor inválido ou saldo insuficiente.");
         return;
       }
 
-      if (valor > saldo) {
-        alert("Saldo insuficiente.");
-        return;
-      }
+      const chance = Math.random();
+      let simboloEscolhido = simbolos[Math.floor(Math.random() * simbolos.length)];
+      let roleta = [];
 
-      const vencedor = Math.random() < 0.3 ? "Tigre" : "Búfalo";  // Taxa de assertividade mais baixa: 30% para o Tigre
-      let resultado = "";
-
-      if (escolha === vencedor) {
-        saldo += valor;
-        resultado = `Você GANHOU! (${escolha} venceu)`;
+      if (chance < 0.4) {
+        roleta = [simboloEscolhido, simboloEscolhido, simboloEscolhido];
+        saldo += valor * 2;
+        adicionarHistorico(`Você GANHOU na roleta! [${roleta.join(" ")}]`, valor);
       } else {
+        while (roleta.length < 3) {
+          let s = simbolos[Math.floor(Math.random() * simbolos.length)];
+          if (s !== simboloEscolhido) roleta.push(s);
+        }
         saldo -= valor;
-        resultado = `Você PERDEU! (${vencedor} venceu)`;
+        adicionarHistorico(`Você PERDEU na roleta! [${roleta.join(" ")}]`, valor);
       }
 
+      document.getElementById("roletaResultado").innerText = roleta.join(" ");
       atualizarSaldo();
+      document.getElementById("valorRoleta").value = "";
+    }
 
+    function adicionarHistorico(texto, valor) {
       const historico = document.getElementById("historico");
       const item = document.createElement("div");
       item.className = "historico-item";
-      item.innerText = `${resultado} | Valor: R$ ${valor}`;
+      item.innerText = `${texto} | Valor: R$ ${valor}`;
       historico.prepend(item);
-
-      document.getElementById("valorApostaTigrinho").value = "";
     }
 
-    atualizarSaldo();
+    function mostrarCadastro() {
+      document.getElementById("telaLogin").style.display = "none";
+      document.getElementById("telaCadastro").style.display = "block";
+    }
+
+    function mostrarLogin() {
+      document.getElementById("telaCadastro").style.display = "none";
+      document.getElementById("telaLogin").style.display = "block";
+    }
+
+    function cadastrar() {
+      const email = document.getElementById("emailCadastro").value;
+      const senha = document.getElementById("senhaCadastro").value;
+      if (!email || !senha) {
+        alert("Preencha todos os campos.");
+        return;
+      }
+      localStorage.setItem(`user_${email}`, senha);
+      alert("Cadastro realizado com sucesso!");
+      mostrarLogin();
+    }
+
+    function login() {
+      const email = document.getElementById("emailLogin").value;
+      const senha = document.getElementById("senhaLogin").value;
+      const senhaSalva = localStorage.getItem(`user_${email}`);
+      if (senhaSalva && senhaSalva === senha) {
+        document.getElementById("telaLogin").style.display = "none";
+        document.getElementById("telaJogo").style.display = "block";
+        saldo = 1000;
+        atualizarSaldo();
+      } else {
+        alert("Email ou senha inválidos.");
+      }
+    }
   </script>
 </body>
 </html>
