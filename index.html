@@ -62,10 +62,22 @@
     <h1>PisinBet</h1>
   </header>
   <main>
-    <div class="saldo" id="saldo">Saldo: R$ 10000</div>
+    <div class="saldo" id="saldo">Saldo: R$ 1000</div>
 
     <div class="aposta">
-      <h2>Fazer uma Aposta</h2>
+      <h2>Fazer uma Aposta - Jogo do Tigrinho</h2>
+      <label>Escolha o vencedor:</label>
+      <select id="escolhaTigrinho">
+        <option value="Tigre">Tigre</option>
+        <option value="Búfalo">Búfalo</option>
+      </select>
+      <label>Valor da aposta:</label>
+      <input type="number" id="valorApostaTigrinho" placeholder="Digite o valor" />
+      <button onclick="apostarTigrinho()">Apostar no Tigrinho</button>
+    </div>
+
+    <div class="aposta">
+      <h2>Fazer uma Aposta - Time A vs Time B</h2>
       <label>Escolha o vencedor:</label>
       <select id="escolha">
         <option value="Time A">Time A</option>
@@ -123,6 +135,42 @@
       historico.prepend(item);
 
       document.getElementById("valorAposta").value = "";
+    }
+
+    function apostarTigrinho() {
+      const escolha = document.getElementById("escolhaTigrinho").value;
+      const valor = parseFloat(document.getElementById("valorApostaTigrinho").value);
+
+      if (isNaN(valor) || valor <= 0) {
+        alert("Digite um valor válido para apostar.");
+        return;
+      }
+
+      if (valor > saldo) {
+        alert("Saldo insuficiente.");
+        return;
+      }
+
+      const vencedor = Math.random() < 0.3 ? "Tigre" : "Búfalo";  // Taxa de assertividade mais baixa: 30% para o Tigre
+      let resultado = "";
+
+      if (escolha === vencedor) {
+        saldo += valor;
+        resultado = `Você GANHOU! (${escolha} venceu)`;
+      } else {
+        saldo -= valor;
+        resultado = `Você PERDEU! (${vencedor} venceu)`;
+      }
+
+      atualizarSaldo();
+
+      const historico = document.getElementById("historico");
+      const item = document.createElement("div");
+      item.className = "historico-item";
+      item.innerText = `${resultado} | Valor: R$ ${valor}`;
+      historico.prepend(item);
+
+      document.getElementById("valorApostaTigrinho").value = "";
     }
 
     atualizarSaldo();
