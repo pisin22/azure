@@ -1,1 +1,132 @@
 
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BetSim - Apostas Fictícias</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #111;
+      color: #fff;
+      margin: 0;
+      padding: 0;
+    }
+    header {
+      background-color: #1e1e1e;
+      padding: 20px;
+      text-align: center;
+    }
+    main {
+      padding: 20px;
+      max-width: 600px;
+      margin: auto;
+    }
+    .saldo {
+      margin-bottom: 20px;
+      font-size: 1.2em;
+    }
+    .aposta {
+      background: #222;
+      padding: 20px;
+      border-radius: 10px;
+    }
+    input, select, button {
+      padding: 10px;
+      margin: 5px 0;
+      width: 100%;
+      border-radius: 5px;
+      border: none;
+    }
+    button {
+      background: #28a745;
+      color: #fff;
+      cursor: pointer;
+    }
+    button:hover {
+      background: #218838;
+    }
+    .historico {
+      margin-top: 30px;
+    }
+    .historico-item {
+      background: #333;
+      margin: 5px 0;
+      padding: 10px;
+      border-radius: 5px;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>BetSim - Apostas com Dinheiro de Mentira</h1>
+  </header>
+  <main>
+    <div class="saldo" id="saldo">Saldo: R$ 1000</div>
+
+    <div class="aposta">
+      <h2>Fazer uma Aposta</h2>
+      <label>Escolha o vencedor:</label>
+      <select id="escolha">
+        <option value="Time A">Time A</option>
+        <option value="Time B">Time B</option>
+      </select>
+      <label>Valor da aposta:</label>
+      <input type="number" id="valorAposta" placeholder="Digite o valor" />
+      <button onclick="apostar()">Apostar</button>
+    </div>
+
+    <div class="historico">
+      <h2>Histórico</h2>
+      <div id="historico"></div>
+    </div>
+  </main>
+
+  <script>
+    let saldo = 1000;
+
+    function atualizarSaldo() {
+      document.getElementById("saldo").innerText = `Saldo: R$ ${saldo}`;
+    }
+
+    function apostar() {
+      const escolha = document.getElementById("escolha").value;
+      const valor = parseFloat(document.getElementById("valorAposta").value);
+
+      if (isNaN(valor) || valor <= 0) {
+        alert("Digite um valor válido para apostar.");
+        return;
+      }
+
+      if (valor > saldo) {
+        alert("Saldo insuficiente.");
+        return;
+      }
+
+      const vencedor = Math.random() < 0.5 ? "Time A" : "Time B";
+      let resultado = "";
+
+      if (escolha === vencedor) {
+        saldo += valor;
+        resultado = `Você GANHOU! (${escolha} venceu)`;
+      } else {
+        saldo -= valor;
+        resultado = `Você PERDEU! (${vencedor} venceu)`;
+      }
+
+      atualizarSaldo();
+
+      const historico = document.getElementById("historico");
+      const item = document.createElement("div");
+      item.className = "historico-item";
+      item.innerText = `${resultado} | Valor: R$ ${valor}`;
+      historico.prepend(item);
+
+      document.getElementById("valorAposta").value = "";
+    }
+
+    atualizarSaldo();
+  </script>
+</body>
+</html>
