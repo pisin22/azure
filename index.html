@@ -22,7 +22,7 @@
       max-width: 800px;
       margin: auto;
     }
-    .formulario, .saldo, .aposta, .historico, .mines, .aviator {
+    .formulario, .saldo, .aviator, .mines, .slot, .game-selection {
       background: #222;
       padding: 20px;
       border-radius: 10px;
@@ -42,28 +42,6 @@
     }
     button:hover {
       background: #218838;
-    }
-    .historico-item {
-      background: #333;
-      margin: 5px 0;
-      padding: 10px;
-      border-radius: 5px;
-    }
-    .roleta-resultado {
-      font-size: 2em;
-      text-align: center;
-      margin-top: 10px;
-    }
-    .grid-mines {
-      display: grid;
-      grid-template-columns: repeat(5, 1fr);
-      gap: 10px;
-      margin-top: 10px;
-    }
-    .grid-mines button {
-      height: 60px;
-      font-size: 1.5em;
-      background: #444;
     }
     .dashboard-button {
       position: absolute;
@@ -126,38 +104,13 @@
     <div id="telaJogo" style="display:none">
       <div class="saldo" id="saldo">Saldo: R$ 1000</div>
 
-      <div class="aposta">
-        <h2>Fazer uma Aposta</h2>
-        <label>Escolha o vencedor:</label>
-        <select id="escolha">
-          <option value="Time A">Time A</option>
-          <option value="Time B">Time B</option>
-        </select>
-        <label>Valor da aposta:</label>
-        <input type="number" id="valorAposta" placeholder="Digite o valor" />
-        <button onclick="apostar()">Apostar</button>
+      <div class="game-selection">
+        <button onclick="mostrarJogo('aviator')">Aviator</button>
+        <button onclick="mostrarJogo('mines')">Mines</button>
+        <button onclick="mostrarJogo('slot')">Caça-Níquel</button>
       </div>
 
-      <div class="aposta">
-        <h2>Caça-níquel - Roleta do Tigrinho</h2>
-        <label>Valor da aposta:</label>
-        <input type="number" id="valorRoleta" placeholder="Digite o valor" />
-        <button onclick="jogarRoleta()">Girar Roleta</button>
-        <div class="roleta-resultado" id="roletaResultado"></div>
-      </div>
-
-      <div class="mines">
-        <h2>Mines</h2>
-        <label>Valor da aposta:</label>
-        <input type="number" id="valorMines" placeholder="Digite o valor" />
-        <label>Número de minas:</label>
-        <input type="number" id="numMinas" placeholder="Ex: 3" />
-        <button onclick="iniciarMines()">Iniciar</button>
-        <div class="grid-mines" id="minesGrid"></div>
-        <button onclick="sacarMines()" style="display:none; margin-top:10px;" id="botaoSacar">Sacar</button>
-      </div>
-
-      <div class="aviator">
+      <div class="aviator" id="jogoAviator">
         <h2>Aviator</h2>
         <label>Valor da aposta:</label>
         <input type="number" id="valorAviator" placeholder="Digite o valor" />
@@ -167,9 +120,14 @@
         <div id="aviatorGraph"></div>
       </div>
 
-      <div class="historico">
-        <h2>Histórico</h2>
-        <div id="historico"></div>
+      <div class="mines" id="jogoMines" style="display:none">
+        <h2>Mines</h2>
+        <p>Jogo similar ao campo minado. (Lógica não implementada aqui)</p>
+      </div>
+
+      <div class="slot" id="jogoSlot" style="display:none">
+        <h2>Caça-Níquel</h2>
+        <p>Slot com figuras: 7, maçã, foguinho, gota d'água, tigre e moeda. (Lógica não implementada aqui)</p>
       </div>
     </div>
 
@@ -184,7 +142,6 @@
     let aviatorMultiplicador = 1;
     let aviatorInterval, aviatorCrash;
     let aviatorRodando = false;
-    const simbolos = ["7️⃣", "🍎", "🔥", "💧", "🐯", "🪙"];
 
     function atualizarSaldo() {
       document.getElementById("saldo").innerText = `Saldo: R$ ${saldo.toFixed(2)}`;
@@ -200,6 +157,23 @@
         dashboard.style.display = "none";
         jogo.style.display = "block";
       }
+    }
+
+    function mostrarCadastro() {
+      document.getElementById("telaLogin").style.display = "none";
+      document.getElementById("telaCadastro").style.display = "block";
+    }
+
+    function mostrarLogin() {
+      document.getElementById("telaLogin").style.display = "block";
+      document.getElementById("telaCadastro").style.display = "none";
+    }
+
+    function mostrarJogo(jogo) {
+      document.getElementById("jogoAviator").style.display = "none";
+      document.getElementById("jogoMines").style.display = "none";
+      document.getElementById("jogoSlot").style.display = "none";
+      document.getElementById("jogo" + jogo.charAt(0).toUpperCase() + jogo.slice(1)).style.display = "block";
     }
 
     function iniciarAviator() {
