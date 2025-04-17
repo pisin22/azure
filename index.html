@@ -22,7 +22,7 @@
       max-width: 800px;
       margin: auto;
     }
-    .formulario, .saldo, .aviator, .mines, .slot {
+    .formulario, .saldo, .aposta, .historico, .mines {
       background: #222;
       padding: 20px;
       border-radius: 10px;
@@ -43,46 +43,55 @@
     button:hover {
       background: #218838;
     }
-    .dashboard-button {
-      position: absolute;
-      top: 20px;
-      right: 20px;
-      padding: 10px 20px;
-      background: #007bff;
-      color: white;
+    .historico-item {
+      background: #333;
+      margin: 5px 0;
+      padding: 10px;
       border-radius: 5px;
-      border: none;
+    }
+    .roleta-resultado {
+      font-size: 2em;
+      text-align: center;
+      margin-top: 10px;
+    }
+    .grid-mines {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 10px;
+      margin-top: 10px;
+    }
+    .grid-mines button {
+      height: 60px;
+      font-size: 1.5em;
+      background: #444;
+    }
+    .menu-jogos {
+      display: flex;
+      justify-content: space-around;
+      margin-bottom: 20px;
+    }
+    .jogo-card {
+      background: #333;
+      border-radius: 10px;
+      padding: 10px;
+      width: 30%;
+      text-align: center;
       cursor: pointer;
     }
-    .dashboard-button:hover {
-      background: #0056b3;
+    .jogo-card:hover {
+      background: #444;
     }
-    #telaDashboard {
-      display: none;
-      padding: 20px;
-      background-color: #1e1e1e;
-      border-radius: 10px;
-    }
-    #aviatorGraph {
-      width: 100%;
-      height: 200px;
-      background-color: #000;
+    .valor-ganho {
       margin-top: 10px;
-      position: relative;
-    }
-    .graph-line {
-      position: absolute;
-      height: 2px;
-      background: lime;
-      top: 50%;
-      left: 0;
+      font-size: 1.2em;
+      color: gold;
+      text-align: center;
     }
   </style>
 </head>
 <body>
   <header>
     <h1>PisinBet</h1>
-    <button class="dashboard-button" onclick="toggleDashboard()">Dashboard</button>
   </header>
   <main>
     <div class="formulario" id="telaLogin">
@@ -104,117 +113,208 @@
     <div id="telaJogo" style="display:none">
       <div class="saldo" id="saldo">Saldo: R$ 1000</div>
 
-      <div class="aviator">
-        <h2>Aviator</h2>
+      <div class="menu-jogos">
+        <div class="jogo-card" onclick="scrollToGame('aposta')">Apostas</div>
+        <div class="jogo-card" onclick="scrollToGame('roleta')">Tigrinho</div>
+        <div class="jogo-card" onclick="scrollToGame('mines')">Mines</div>
+      </div>
+
+      <div class="aposta" id="aposta">
+        <h2>Fazer uma Aposta</h2>
+        <label>Escolha o vencedor:</label>
+        <select id="escolha">
+          <option value="Time A">Time A</option>
+          <option value="Time B">Time B</option>
+        </select>
         <label>Valor da aposta:</label>
-        <input type="number" id="valorAviator" placeholder="Digite o valor" />
-        <button onclick="iniciarAviator()">Apostar</button>
-        <button onclick="sacarAviator()" id="sacarAviator" style="display:none">Sacar</button>
-        <div id="multiplicadorAviator">Multiplicador: 1.00x</div>
-        <div id="aviatorGraph"></div>
+        <input type="number" id="valorAposta" placeholder="Digite o valor" />
+        <button onclick="apostar()">Apostar</button>
       </div>
 
-      <div class="mines">
-        <h2>Mines (40% de chance de acerto)</h2>
-        <button onclick="jogarMines()">Jogar</button>
+      <div class="aposta" id="roleta">
+        <h2>Caça-níquel - Roleta do Tigrinho</h2>
+        <label>Valor da aposta:</label>
+        <input type="number" id="valorRoleta" placeholder="Digite o valor" />
+        <button onclick="jogarRoleta()">Girar Roleta</button>
+        <div class="roleta-resultado" id="roletaResultado"></div>
       </div>
 
-      <div class="slot">
-        <h2>Caça-Níquel (40% de chance de acerto)</h2>
-        <button onclick="jogarSlot()">Girar</button>
+      <div class="mines" id="mines">
+        <h2>Mines</h2>
+        <label>Valor da aposta:</label>
+        <input type="number" id="valorMines" placeholder="Digite o valor" />
+        <label>Número de minas:</label>
+        <input type="number" id="numMinas" placeholder="Ex: 3" />
+        <button onclick="iniciarMines()">Iniciar</button>
+        <div class="grid-mines" id="minesGrid"></div>
+        <button onclick="sacarMines()" style="display:none; margin-top:10px;" id="botaoSacar">Sacar</button>
+        <div class="valor-ganho" id="valorGanho"></div>
       </div>
-    </div>
 
-    <div id="telaDashboard">
-      <h2>Dashboard de Admin</h2>
-      <p>Aqui você poderá ver dados estatísticos e de controle futuramente.</p>
+      <div class="historico">
+        <h2>Histórico</h2>
+        <div id="historico"></div>
+      </div>
     </div>
   </main>
 
   <script>
     let saldo = 1000;
-    let aviatorMultiplicador = 1;
-    let aviatorInterval, aviatorCrash;
-    let aviatorRodando = false;
+    const simbolos = ["7️⃣", "🍎", "🔥", "💧", "🐯", "🪙"];
+    let minasAtivas = [];
+    let revealed = 0;
+    let valorApostaMines = 0;
+    let multiplicador = 1;
 
     function atualizarSaldo() {
       document.getElementById("saldo").innerText = `Saldo: R$ ${saldo.toFixed(2)}`;
     }
 
-    function toggleDashboard() {
-      const dashboard = document.getElementById("telaDashboard");
-      const jogo = document.getElementById("telaJogo");
-      if (dashboard.style.display === "none") {
-        dashboard.style.display = "block";
-        jogo.style.display = "none";
+    function scrollToGame(id) {
+      document.getElementById(id).scrollIntoView({ behavior: 'smooth' });
+    }
+
+    function apostar() {
+      const escolha = document.getElementById("escolha").value;
+      const valor = parseFloat(document.getElementById("valorAposta").value);
+      if (isNaN(valor) || valor <= 0 || valor > saldo) {
+        alert("Valor inválido ou saldo insuficiente.");
+        return;
+      }
+      const vencedor = Math.random() < 0.5 ? "Time A" : "Time B";
+      const resultado = (escolha === vencedor) ? `Você GANHOU! (${escolha} venceu)` : `Você PERDEU! (${vencedor} venceu)`;
+      saldo += (escolha === vencedor) ? valor : -valor;
+      atualizarSaldo();
+      adicionarHistorico(resultado, valor);
+      document.getElementById("valorAposta").value = "";
+    }
+
+    function jogarRoleta() {
+      const valor = parseFloat(document.getElementById("valorRoleta").value);
+      if (isNaN(valor) || valor <= 0 || valor > saldo) {
+        alert("Valor inválido ou saldo insuficiente.");
+        return;
+      }
+      const chance = Math.random();
+      let simboloEscolhido = simbolos[Math.floor(Math.random() * simbolos.length)];
+      let roleta = [];
+      if (chance < 0.4) {
+        roleta = [simboloEscolhido, simboloEscolhido, simboloEscolhido];
+        saldo += valor * 2;
+        adicionarHistorico(`Você GANHOU na roleta! [${roleta.join(" ")}]`, valor);
       } else {
-        dashboard.style.display = "none";
-        jogo.style.display = "block";
+        while (roleta.length < 3) {
+          let s = simbolos[Math.floor(Math.random() * simbolos.length)];
+          if (s !== simboloEscolhido) roleta.push(s);
+        }
+        saldo -= valor;
+        adicionarHistorico(`Você PERDEU na roleta! [${roleta.join(" ")}]`, valor);
+      }
+      document.getElementById("roletaResultado").innerText = roleta.join(" ");
+      atualizarSaldo();
+      document.getElementById("valorRoleta").value = "";
+    }
+
+    function iniciarMines() {
+      const valor = parseFloat(document.getElementById("valorMines").value);
+      const numMinas = parseInt(document.getElementById("numMinas").value);
+      if (isNaN(valor) || valor <= 0 || valor > saldo || isNaN(numMinas) || numMinas < 1 || numMinas > 24) {
+        alert("Dados inválidos.");
+        return;
+      }
+      saldo -= valor;
+      valorApostaMines = valor;
+      revealed = 0;
+      multiplicador = 1;
+      minasAtivas = [];
+      const grid = document.getElementById("minesGrid");
+      grid.innerHTML = "";
+      document.getElementById("botaoSacar").style.display = "block";
+      document.getElementById("valorGanho").innerText = "";
+
+      while (minasAtivas.length < numMinas) {
+        let index = Math.floor(Math.random() * 25);
+        if (!minasAtivas.includes(index)) minasAtivas.push(index);
+      }
+      for (let i = 0; i < 25; i++) {
+        const btn = document.createElement("button");
+        btn.innerText = "?";
+        btn.onclick = () => revelarMina(btn, i);
+        grid.appendChild(btn);
+      }
+      atualizarSaldo();
+    }
+
+    function revelarMina(botao, index) {
+      if (botao.disabled) return;
+      if (minasAtivas.includes(index)) {
+        botao.innerText = "💣";
+        adicionarHistorico("Você PERDEU no Mines!", valorApostaMines);
+        document.getElementById("botaoSacar").style.display = "none";
+        document.querySelectorAll(".grid-mines button").forEach(btn => btn.disabled = true);
+        document.getElementById("valorGanho").innerText = "";
+      } else {
+        botao.innerText = "💎";
+        botao.disabled = true;
+        revealed++;
+        multiplicador += 0.3;
+        const ganho = valorApostaMines * multiplicador;
+        document.getElementById("valorGanho").innerText = `Ganho atual: R$ ${ganho.toFixed(2)}`;
       }
     }
 
-    function iniciarAviator() {
-      const valor = parseFloat(document.getElementById("valorAviator").value);
-      if (isNaN(valor) || valor <= 0 || valor > saldo || aviatorRodando) return;
-      saldo -= valor;
-      atualizarSaldo();
-      aviatorMultiplicador = 1;
-      aviatorCrash = Math.random() < 0.4 ? Math.random() * (4 - 1.2) + 1.2 : 0;
-      document.getElementById("sacarAviator").style.display = "block";
-      aviatorRodando = true;
-
-      const graph = document.getElementById("aviatorGraph");
-      graph.innerHTML = "";
-
-      aviatorInterval = setInterval(() => {
-        aviatorMultiplicador += 0.01;
-        document.getElementById("multiplicadorAviator").innerText = `Multiplicador: ${aviatorMultiplicador.toFixed(2)}x`;
-
-        const line = document.createElement("div");
-        line.className = "graph-line";
-        line.style.width = `${aviatorMultiplicador * 20}px`;
-        graph.appendChild(line);
-
-        if (aviatorCrash && aviatorMultiplicador >= aviatorCrash) {
-          clearInterval(aviatorInterval);
-          aviatorRodando = false;
-          document.getElementById("sacarAviator").style.display = "none";
-          alert("O avião voou! Você perdeu a aposta.");
-        }
-      }, 50);
-    }
-
-    function sacarAviator() {
-      if (!aviatorRodando) return;
-      clearInterval(aviatorInterval);
-      const ganho = parseFloat(document.getElementById("valorAviator").value) * aviatorMultiplicador;
+    function sacarMines() {
+      const ganho = valorApostaMines * multiplicador;
       saldo += ganho;
       atualizarSaldo();
-      aviatorRodando = false;
-      document.getElementById("sacarAviator").style.display = "none";
-      alert(`Você sacou R$ ${ganho.toFixed(2)}!`);
+      adicionarHistorico(`Você SACOU no Mines! Ganhou R$ ${ganho.toFixed(2)}`, ganho);
+      document.getElementById("botaoSacar").style.display = "none";
+      document.querySelectorAll(".grid-mines button").forEach(btn => btn.disabled = true);
+      document.getElementById("valorGanho").innerText = "";
     }
 
-    function jogarMines() {
-      if (Math.random() < 0.4) {
-        saldo += 20;
-        alert("Você encontrou um prêmio no Mines! +R$ 20");
-      } else {
-        saldo -= 10;
-        alert("Você clicou em uma mina! -R$ 10");
-      }
-      atualizarSaldo();
+    function adicionarHistorico(texto, valor) {
+      const historico = document.getElementById("historico");
+      const item = document.createElement("div");
+      item.className = "historico-item";
+      item.innerText = `${texto} | Valor: R$ ${valor.toFixed(2)}`;
+      historico.prepend(item);
     }
 
-    function jogarSlot() {
-      if (Math.random() < 0.4) {
-        saldo += 50;
-        alert("Você ganhou no caça-níquel! +R$ 50");
-      } else {
-        saldo -= 20;
-        alert("Você perdeu no caça-níquel! -R$ 20");
+    function mostrarCadastro() {
+      document.getElementById("telaLogin").style.display = "none";
+      document.getElementById("telaCadastro").style.display = "block";
+    }
+
+    function mostrarLogin() {
+      document.getElementById("telaCadastro").style.display = "none";
+      document.getElementById("telaLogin").style.display = "block";
+    }
+
+    function cadastrar() {
+      const email = document.getElementById("emailCadastro").value;
+      const senha = document.getElementById("senhaCadastro").value;
+      if (!email || !senha) {
+        alert("Preencha todos os campos.");
+        return;
       }
-      atualizarSaldo();
+      localStorage.setItem(`user_${email}`, senha);
+      alert("Cadastro realizado com sucesso!");
+      mostrarLogin();
+    }
+
+    function login() {
+      const email = document.getElementById("emailLogin").value;
+      const senha = document.getElementById("senhaLogin").value;
+      const senhaSalva = localStorage.getItem(`user_${email}`);
+      if (senhaSalva && senhaSalva === senha) {
+        document.getElementById("telaLogin").style.display = "none";
+        document.getElementById("telaJogo").style.display = "block";
+        saldo = 1000;
+        atualizarSaldo();
+      } else {
+        alert("Email ou senha inválidos.");
+      }
     }
   </script>
 </body>
