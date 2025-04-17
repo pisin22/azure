@@ -113,6 +113,16 @@
         <div id="multiplicadorAviator">Multiplicador: 1.00x</div>
         <div id="aviatorGraph"></div>
       </div>
+
+      <div class="mines">
+        <h2>Mines (40% de chance de acerto)</h2>
+        <button onclick="jogarMines()">Jogar</button>
+      </div>
+
+      <div class="slot">
+        <h2>Caça-Níquel (40% de chance de acerto)</h2>
+        <button onclick="jogarSlot()">Girar</button>
+      </div>
     </div>
 
     <div id="telaDashboard">
@@ -183,6 +193,28 @@
       aviatorRodando = false;
       document.getElementById("sacarAviator").style.display = "none";
       alert(`Você sacou R$ ${ganho.toFixed(2)}!`);
+    }
+
+    function jogarMines() {
+      if (Math.random() < 0.4) {
+        saldo += 20;
+        alert("Você encontrou um prêmio no Mines! +R$ 20");
+      } else {
+        saldo -= 10;
+        alert("Você clicou em uma mina! -R$ 10");
+      }
+      atualizarSaldo();
+    }
+
+    function jogarSlot() {
+      if (Math.random() < 0.4) {
+        saldo += 50;
+        alert("Você ganhou no caça-níquel! +R$ 50");
+      } else {
+        saldo -= 20;
+        alert("Você perdeu no caça-níquel! -R$ 20");
+      }
+      atualizarSaldo();
     }
   </script>
 </body>
