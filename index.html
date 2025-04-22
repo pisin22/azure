@@ -192,11 +192,15 @@
     function login() {
       const email = document.getElementById('emailLogin').value;
       const senha = document.getElementById('senhaLogin').value;
-      const savedEmail = localStorage.getItem('email');
-      const savedSenha = localStorage.getItem('senha');
-      if (email === savedEmail && senha === savedSenha) {
+      const usuarios = JSON.parse(localStorage.getItem('usuarios')) || [];
+      const usuario = usuarios.find(u => u.email === email && u.senha === senha);
+      if (usuario) {
+        localStorage.setItem('email', email);
+        localStorage.setItem('senha', senha);
+        localStorage.setItem('saldo', usuario.saldo);
         document.getElementById('telaLogin').style.display = 'none';
         document.getElementById('telaJogo').style.display = 'block';
+        saldo = usuario.saldo;
         atualizarSaldo();
       } else {
         alert('Email ou senha incorretos');
@@ -206,9 +210,13 @@
     function cadastrar() {
       const email = document.getElementById('emailCadastro').value;
       const senha = document.getElementById('senhaCadastro').value;
-      localStorage.setItem('email', email);
-      localStorage.setItem('senha', senha);
-      localStorage.setItem('saldo', 1000);
+      let usuarios = JSON.parse(localStorage.getItem('usuarios')) || [];
+      if (usuarios.find(u => u.email === email)) {
+        alert('Email já cadastrado!');
+        return;
+      }
+      usuarios.push({ email, senha, saldo: 1000 });
+      localStorage.setItem('usuarios', JSON.stringify(usuarios));
       alert('Cadastro realizado com sucesso!');
       mostrarLogin();
     }
