@@ -169,7 +169,7 @@
   </main>
 
   <script>
-    let saldo = 1000;
+    let saldo = parseFloat(localStorage.getItem('saldo')) || 1000;
     const simbolos = ["7️⃣", "🍎", "🔥", "💧", "🐯", "🪙"];
     let minasAtivas = [];
     let revealed = 0;
@@ -178,6 +178,7 @@
 
     function atualizarSaldo() {
       document.getElementById("saldo").innerText = `Saldo: R$ ${saldo.toFixed(2)}`;
+      localStorage.setItem('saldo', saldo);
     }
 
     function scrollToGame(id) {
@@ -188,10 +189,41 @@
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
-    // resto do script permanece inalterado
-  </script>
-  <script>
-    // Aqui seguem todas as funções que já estavam no script anterior (apostar, jogarRoleta, iniciarMines etc.)
+    function login() {
+      const email = document.getElementById('emailLogin').value;
+      const senha = document.getElementById('senhaLogin').value;
+      const savedEmail = localStorage.getItem('email');
+      const savedSenha = localStorage.getItem('senha');
+      if (email === savedEmail && senha === savedSenha) {
+        document.getElementById('telaLogin').style.display = 'none';
+        document.getElementById('telaJogo').style.display = 'block';
+        atualizarSaldo();
+      } else {
+        alert('Email ou senha incorretos');
+      }
+    }
+
+    function cadastrar() {
+      const email = document.getElementById('emailCadastro').value;
+      const senha = document.getElementById('senhaCadastro').value;
+      localStorage.setItem('email', email);
+      localStorage.setItem('senha', senha);
+      localStorage.setItem('saldo', 1000);
+      alert('Cadastro realizado com sucesso!');
+      mostrarLogin();
+    }
+
+    function mostrarCadastro() {
+      document.getElementById('telaLogin').style.display = 'none';
+      document.getElementById('telaCadastro').style.display = 'block';
+    }
+
+    function mostrarLogin() {
+      document.getElementById('telaCadastro').style.display = 'none';
+      document.getElementById('telaLogin').style.display = 'block';
+    }
+
+    atualizarSaldo();
   </script>
 </body>
 </html>
