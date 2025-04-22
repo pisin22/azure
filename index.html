@@ -87,6 +87,20 @@
       color: gold;
       text-align: center;
     }
+    .botao-logout {
+      margin-top: 10px;
+      background: #dc3545;
+    }
+    .botao-logout:hover {
+      background: #c82333;
+    }
+    #aviatorCanvas {
+      background-color: #000;
+      width: 100%;
+      height: 300px;
+      display: block;
+      margin: auto;
+    }
   </style>
 </head>
 <body>
@@ -112,11 +126,13 @@
 
     <div id="telaJogo" style="display:none">
       <div class="saldo" id="saldo">Saldo: R$ 1000</div>
+      <button class="botao-logout" onclick="logout()">Sair</button>
 
       <div class="menu-jogos">
         <div class="jogo-card" onclick="scrollToGame('aposta')">Apostas</div>
         <div class="jogo-card" onclick="scrollToGame('roleta')">Tigrinho</div>
         <div class="jogo-card" onclick="scrollToGame('mines')">Mines</div>
+        <div class="jogo-card" onclick="scrollToGame('aviator')">Aviator</div>
       </div>
 
       <div class="aposta" id="aposta">
@@ -151,6 +167,11 @@
         <div class="valor-ganho" id="valorGanho"></div>
       </div>
 
+      <div class="aposta" id="aviator">
+        <h2>Aviator</h2>
+        <canvas id="aviatorCanvas"></canvas>
+      </div>
+
       <div class="historico">
         <h2>Histórico</h2>
         <div id="historico"></div>
@@ -159,163 +180,45 @@
   </main>
 
   <script>
-    let saldo = 1000;
-    const simbolos = ["7️⃣", "🍎", "🔥", "💧", "🐯", "🪙"];
-    let minasAtivas = [];
-    let revealed = 0;
-    let valorApostaMines = 0;
-    let multiplicador = 1;
-
-    function atualizarSaldo() {
-      document.getElementById("saldo").innerText = `Saldo: R$ ${saldo.toFixed(2)}`;
-    }
-
-    function scrollToGame(id) {
-      document.getElementById(id).scrollIntoView({ behavior: 'smooth' });
-    }
-
-    function apostar() {
-      const escolha = document.getElementById("escolha").value;
-      const valor = parseFloat(document.getElementById("valorAposta").value);
-      if (isNaN(valor) || valor <= 0 || valor > saldo) {
-        alert("Valor inválido ou saldo insuficiente.");
-        return;
-      }
-      const vencedor = Math.random() < 0.5 ? "Time A" : "Time B";
-      const resultado = (escolha === vencedor) ? `Você GANHOU! (${escolha} venceu)` : `Você PERDEU! (${vencedor} venceu)`;
-      saldo += (escolha === vencedor) ? valor : -valor;
-      atualizarSaldo();
-      adicionarHistorico(resultado, valor);
-      document.getElementById("valorAposta").value = "";
-    }
-
-    function jogarRoleta() {
-      const valor = parseFloat(document.getElementById("valorRoleta").value);
-      if (isNaN(valor) || valor <= 0 || valor > saldo) {
-        alert("Valor inválido ou saldo insuficiente.");
-        return;
-      }
-      const chance = Math.random();
-      let simboloEscolhido = simbolos[Math.floor(Math.random() * simbolos.length)];
-      let roleta = [];
-      if (chance < 0.4) {
-        roleta = [simboloEscolhido, simboloEscolhido, simboloEscolhido];
-        saldo += valor * 2;
-        adicionarHistorico(`Você GANHOU na roleta! [${roleta.join(" ")}]`, valor);
-      } else {
-        while (roleta.length < 3) {
-          let s = simbolos[Math.floor(Math.random() * simbolos.length)];
-          if (s !== simboloEscolhido) roleta.push(s);
-        }
-        saldo -= valor;
-        adicionarHistorico(`Você PERDEU na roleta! [${roleta.join(" ")}]`, valor);
-      }
-      document.getElementById("roletaResultado").innerText = roleta.join(" ");
-      atualizarSaldo();
-      document.getElementById("valorRoleta").value = "";
-    }
-
-    function iniciarMines() {
-      const valor = parseFloat(document.getElementById("valorMines").value);
-      const numMinas = parseInt(document.getElementById("numMinas").value);
-      if (isNaN(valor) || valor <= 0 || valor > saldo || isNaN(numMinas) || numMinas < 1 || numMinas > 24) {
-        alert("Dados inválidos.");
-        return;
-      }
-      saldo -= valor;
-      valorApostaMines = valor;
-      revealed = 0;
-      multiplicador = 1;
-      minasAtivas = [];
-      const grid = document.getElementById("minesGrid");
-      grid.innerHTML = "";
-      document.getElementById("botaoSacar").style.display = "block";
-      document.getElementById("valorGanho").innerText = "";
-
-      while (minasAtivas.length < numMinas) {
-        let index = Math.floor(Math.random() * 25);
-        if (!minasAtivas.includes(index)) minasAtivas.push(index);
-      }
-      for (let i = 0; i < 25; i++) {
-        const btn = document.createElement("button");
-        btn.innerText = "?";
-        btn.onclick = () => revelarMina(btn, i);
-        grid.appendChild(btn);
-      }
-      atualizarSaldo();
-    }
-
-    function revelarMina(botao, index) {
-      if (botao.disabled) return;
-      if (minasAtivas.includes(index)) {
-        botao.innerText = "💣";
-        adicionarHistorico("Você PERDEU no Mines!", valorApostaMines);
-        document.getElementById("botaoSacar").style.display = "none";
-        document.querySelectorAll(".grid-mines button").forEach(btn => btn.disabled = true);
-        document.getElementById("valorGanho").innerText = "";
-      } else {
-        botao.innerText = "💎";
-        botao.disabled = true;
-        revealed++;
-        multiplicador += 0.3;
-        const ganho = valorApostaMines * multiplicador;
-        document.getElementById("valorGanho").innerText = `Ganho atual: R$ ${ganho.toFixed(2)}`;
-      }
-    }
-
-    function sacarMines() {
-      const ganho = valorApostaMines * multiplicador;
-      saldo += ganho;
-      atualizarSaldo();
-      adicionarHistorico(`Você SACOU no Mines! Ganhou R$ ${ganho.toFixed(2)}`, ganho);
-      document.getElementById("botaoSacar").style.display = "none";
-      document.querySelectorAll(".grid-mines button").forEach(btn => btn.disabled = true);
-      document.getElementById("valorGanho").innerText = "";
-    }
-
-    function adicionarHistorico(texto, valor) {
-      const historico = document.getElementById("historico");
-      const item = document.createElement("div");
-      item.className = "historico-item";
-      item.innerText = `${texto} | Valor: R$ ${valor.toFixed(2)}`;
-      historico.prepend(item);
-    }
-
-    function mostrarCadastro() {
-      document.getElementById("telaLogin").style.display = "none";
-      document.getElementById("telaCadastro").style.display = "block";
-    }
-
-    function mostrarLogin() {
-      document.getElementById("telaCadastro").style.display = "none";
+    function logout() {
+      document.getElementById("telaJogo").style.display = "none";
       document.getElementById("telaLogin").style.display = "block";
     }
 
-    function cadastrar() {
-      const email = document.getElementById("emailCadastro").value;
-      const senha = document.getElementById("senhaCadastro").value;
-      if (!email || !senha) {
-        alert("Preencha todos os campos.");
-        return;
-      }
-      localStorage.setItem(`user_${email}`, senha);
-      alert("Cadastro realizado com sucesso!");
-      mostrarLogin();
+    function scrollToGame(id) {
+      const el = document.getElementById(id);
+      if (el) el.scrollIntoView({ behavior: "smooth" });
     }
 
-    function login() {
-      const email = document.getElementById("emailLogin").value;
-      const senha = document.getElementById("senhaLogin").value;
-      const senhaSalva = localStorage.getItem(`user_${email}`);
-      if (senhaSalva && senhaSalva === senha) {
-        document.getElementById("telaLogin").style.display = "none";
-        document.getElementById("telaJogo").style.display = "block";
-        saldo = 1000;
-        atualizarSaldo();
-      } else {
-        alert("Email ou senha inválidos.");
+    const canvas = document.getElementById("aviatorCanvas");
+    const ctx = canvas?.getContext("2d");
+    if (canvas && ctx) {
+      canvas.width = canvas.clientWidth;
+      canvas.height = canvas.clientHeight;
+
+      let time = 0;
+      let multiplier = 1;
+
+      function draw() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.beginPath();
+        ctx.moveTo(0, canvas.height);
+        for (let x = 0; x < canvas.width; x++) {
+          let y = canvas.height - (Math.log(x + 1) * 10);
+          ctx.lineTo(x, y);
+        }
+        ctx.strokeStyle = "#00ff00";
+        ctx.lineWidth = 2;
+        ctx.stroke();
+
+        ctx.fillStyle = "#fff";
+        ctx.font = "20px Arial";
+        ctx.fillText(`Multiplicador: ${multiplier.toFixed(2)}x`, 10, 30);
+        multiplier += 0.01;
       }
+
+      setInterval(draw, 100);
     }
   </script>
 </body>
-</html>
+</html> 
