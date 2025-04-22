@@ -22,7 +22,7 @@
       max-width: 800px;
       margin: auto;
     }
-    .formulario, .saldo, .aposta, .historico, .mines, .aviator {
+    .formulario, .saldo, .aposta, .historico, .mines {
       background: #222;
       padding: 20px;
       border-radius: 10px;
@@ -69,7 +69,6 @@
       display: flex;
       justify-content: space-around;
       margin-bottom: 20px;
-      flex-wrap: wrap;
     }
     .jogo-card {
       background: #333;
@@ -78,7 +77,6 @@
       width: 30%;
       text-align: center;
       cursor: pointer;
-      margin: 10px 0;
     }
     .jogo-card:hover {
       background: #444;
@@ -89,84 +87,249 @@
       color: gold;
       text-align: center;
     }
-    canvas {
-      display: block;
-      margin: 10px auto;
-      background-color: #000;
-      width: 100%;
-      height: 200px;
+    .btn-reiniciar {
+      background: #dc3545;
+      margin-top: 10px;
+    }
+    .btn-reiniciar:hover {
+      background: #c82333;
     }
   </style>
 </head>
 <body>
-  <!-- conteúdo HTML anterior permanece inalterado -->
+  <header>
+    <h1>PisinBet</h1>
+  </header>
+  <main>
+    <div class="formulario" id="telaLogin">
+      <h2>Login</h2>
+      <input type="email" id="emailLogin" placeholder="Email" />
+      <input type="password" id="senhaLogin" placeholder="Senha" />
+      <button onclick="login()">Entrar</button>
+      <p>Ainda não tem conta? <a href="#" onclick="mostrarCadastro()">Cadastre-se</a></p>
+    </div>
 
-  <!-- Novo jogo Aviator -->
-  <div class="aviator" id="aviator">
-    <h2>Aviator</h2>
-    <label>Valor da aposta:</label>
-    <input type="number" id="valorAviator" placeholder="Digite o valor" />
-    <button onclick="iniciarAviator()">Jogar</button>
-    <button id="sacarAviator" onclick="sacarAviator()" disabled>Sacar</button>
-    <canvas id="aviatorCanvas" width="600" height="200"></canvas>
-    <div class="valor-ganho" id="ganhoAviator"></div>
-  </div>
+    <div class="formulario" id="telaCadastro" style="display:none">
+      <h2>Cadastro</h2>
+      <input type="email" id="emailCadastro" placeholder="Email" />
+      <input type="password" id="senhaCadastro" placeholder="Senha" />
+      <button onclick="cadastrar()">Cadastrar</button>
+      <p>Já tem conta? <a href="#" onclick="mostrarLogin()">Fazer login</a></p>
+    </div>
+
+    <div id="telaJogo" style="display:none">
+      <div class="saldo" id="saldo">Saldo: R$ 1000</div>
+
+      <div class="menu-jogos">
+        <div class="jogo-card" onclick="scrollToGame('aposta')">Apostas</div>
+        <div class="jogo-card" onclick="scrollToGame('roleta')">Tigrinho</div>
+        <div class="jogo-card" onclick="scrollToGame('mines')">Mines</div>
+      </div>
+
+      <div class="aposta" id="aposta">
+        <h2>Fazer uma Aposta</h2>
+        <label>Escolha o vencedor:</label>
+        <select id="escolha">
+          <option value="Time A">Time A</option>
+          <option value="Time B">Time B</option>
+        </select>
+        <label>Valor da aposta:</label>
+        <input type="number" id="valorAposta" placeholder="Digite o valor" />
+        <button onclick="apostar()">Apostar</button>
+      </div>
+
+      <div class="aposta" id="roleta">
+        <h2>Caça-níquel - Roleta do Tigrinho</h2>
+        <label>Valor da aposta:</label>
+        <input type="number" id="valorRoleta" placeholder="Digite o valor" />
+        <button onclick="jogarRoleta()">Girar Roleta</button>
+        <div class="roleta-resultado" id="roletaResultado"></div>
+      </div>
+
+      <div class="mines" id="mines">
+        <h2>Mines</h2>
+        <label>Valor da aposta:</label>
+        <input type="number" id="valorMines" placeholder="Digite o valor" />
+        <label>Número de minas:</label>
+        <input type="number" id="numMinas" placeholder="Ex: 3" />
+        <button onclick="iniciarMines()">Iniciar</button>
+        <div class="grid-mines" id="minesGrid"></div>
+        <button onclick="sacarMines()" style="display:none;" id="botaoSacar">Sacar</button>
+        <button onclick="reiniciarMines()" class="btn-reiniciar">Reiniciar</button>
+        <div class="valor-ganho" id="valorGanho"></div>
+      </div>
+
+      <div class="historico">
+        <h2>Histórico</h2>
+        <div id="historico"></div>
+      </div>
+    </div>
+  </main>
 
   <script>
-    let saldo = 1000; // Valor inicial de saldo fictício
-    let aviatorInterval, tempo = 0, multiplicadorAtual = 1, apostou = false, valorApostaAviator = 0;
-    const canvas = document.getElementById('aviatorCanvas');
-    const ctx = canvas.getContext('2d');
+    let saldo = 1000;
+    const simbolos = ["7️⃣", "🍎", "🔥", "💧", "🐯", "🪙"];
+    let minasAtivas = [];
+    let revealed = 0;
+    let valorApostaMines = 0;
+    let multiplicador = 1;
 
     function atualizarSaldo() {
-      console.log("Saldo atualizado:", saldo);
+      document.getElementById("saldo").innerText = `Saldo: R$ ${saldo.toFixed(2)}`;
     }
 
-    function iniciarAviator() {
-      valorApostaAviator = parseFloat(document.getElementById("valorAviator").value);
-      if (isNaN(valorApostaAviator) || valorApostaAviator <= 0 || valorApostaAviator > saldo) {
+    function scrollToGame(id) {
+      document.getElementById(id).scrollIntoView({ behavior: 'smooth' });
+    }
+
+    function apostar() {
+      const escolha = document.getElementById("escolha").value;
+      const valor = parseFloat(document.getElementById("valorAposta").value);
+      if (isNaN(valor) || valor <= 0 || valor > saldo) {
         alert("Valor inválido ou saldo insuficiente.");
         return;
       }
-      saldo -= valorApostaAviator;
+      const vencedor = Math.random() < 0.5 ? "Time A" : "Time B";
+      const resultado = (escolha === vencedor) ? `Você GANHOU! (${escolha} venceu)` : `Você PERDEU! (${vencedor} venceu)`;
+      saldo += (escolha === vencedor) ? valor : -valor;
       atualizarSaldo();
-      tempo = 0;
-      multiplicadorAtual = 1;
-      apostou = true;
-      document.getElementById("sacarAviator").disabled = false;
-      clearInterval(aviatorInterval);
-      aviatorInterval = setInterval(() => {
-        tempo += 0.1;
-        multiplicadorAtual = 1 + tempo * 0.5;
-        desenharGrafico(multiplicadorAtual);
-        if (Math.random() < 0.02 || multiplicadorAtual > 10) {
-          clearInterval(aviatorInterval);
-          document.getElementById("ganhoAviator").innerText = "O avião caiu!";
-          document.getElementById("sacarAviator").disabled = true;
-          apostou = false;
-        }
-      }, 100);
+      adicionarHistorico(resultado, valor);
+      document.getElementById("valorAposta").value = "";
     }
 
-    function sacarAviator() {
-      if (!apostou) return;
-      clearInterval(aviatorInterval);
-      const ganho = valorApostaAviator * multiplicadorAtual;
+    function jogarRoleta() {
+      const valor = parseFloat(document.getElementById("valorRoleta").value);
+      if (isNaN(valor) || valor <= 0 || valor > saldo) {
+        alert("Valor inválido ou saldo insuficiente.");
+        return;
+      }
+      const chance = Math.random();
+      let simboloEscolhido = simbolos[Math.floor(Math.random() * simbolos.length)];
+      let roleta = [];
+      if (chance < 0.4) {
+        roleta = [simboloEscolhido, simboloEscolhido, simboloEscolhido];
+        saldo += valor * 2;
+        adicionarHistorico(`Você GANHOU na roleta! [${roleta.join(" ")}]`, valor);
+      } else {
+        while (roleta.length < 3) {
+          let s = simbolos[Math.floor(Math.random() * simbolos.length)];
+          if (s !== simboloEscolhido) roleta.push(s);
+        }
+        saldo -= valor;
+        adicionarHistorico(`Você PERDEU na roleta! [${roleta.join(" ")}]`, valor);
+      }
+      document.getElementById("roletaResultado").innerText = roleta.join(" ");
+      atualizarSaldo();
+      document.getElementById("valorRoleta").value = "";
+    }
+
+    function iniciarMines() {
+      const valor = parseFloat(document.getElementById("valorMines").value);
+      const numMinas = parseInt(document.getElementById("numMinas").value);
+      if (isNaN(valor) || valor <= 0 || valor > saldo || isNaN(numMinas) || numMinas < 1 || numMinas > 24) {
+        alert("Dados inválidos.");
+        return;
+      }
+      saldo -= valor;
+      valorApostaMines = valor;
+      revealed = 0;
+      multiplicador = 1;
+      minasAtivas = [];
+      const grid = document.getElementById("minesGrid");
+      grid.innerHTML = "";
+      document.getElementById("botaoSacar").style.display = "block";
+      document.getElementById("valorGanho").innerText = "";
+
+      while (minasAtivas.length < numMinas) {
+        let index = Math.floor(Math.random() * 25);
+        if (!minasAtivas.includes(index)) minasAtivas.push(index);
+      }
+      for (let i = 0; i < 25; i++) {
+        const btn = document.createElement("button");
+        btn.innerText = "?";
+        btn.onclick = () => revelarMina(btn, i);
+        grid.appendChild(btn);
+      }
+      atualizarSaldo();
+    }
+
+    function revelarMina(botao, index) {
+      if (botao.disabled) return;
+      if (minasAtivas.includes(index)) {
+        botao.innerText = "💣";
+        adicionarHistorico("Você PERDEU no Mines!", valorApostaMines);
+        document.getElementById("botaoSacar").style.display = "none";
+        document.querySelectorAll(".grid-mines button").forEach(btn => btn.disabled = true);
+        document.getElementById("valorGanho").innerText = "";
+      } else {
+        botao.innerText = "💎";
+        botao.disabled = true;
+        revealed++;
+        multiplicador += 0.3;
+        const ganho = valorApostaMines * multiplicador;
+        document.getElementById("valorGanho").innerText = `Ganho atual: R$ ${ganho.toFixed(2)}`;
+      }
+    }
+
+    function sacarMines() {
+      const ganho = valorApostaMines * multiplicador;
       saldo += ganho;
       atualizarSaldo();
-      document.getElementById("ganhoAviator").innerText = `Você sacou: R$ ${ganho.toFixed(2)}`;
-      document.getElementById("sacarAviator").disabled = true;
-      apostou = false;
+      adicionarHistorico(`Você SACOU no Mines! Ganhou R$ ${ganho.toFixed(2)}`, ganho);
+      document.getElementById("botaoSacar").style.display = "none";
+      document.querySelectorAll(".grid-mines button").forEach(btn => btn.disabled = true);
+      document.getElementById("valorGanho").innerText = "";
     }
 
-    function desenharGrafico(mult) {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      ctx.fillStyle = "white";
-      ctx.font = "20px Arial";
-      ctx.fillText(`Multiplicador: ${mult.toFixed(2)}x`, 10, 30);
-      if (apostou) {
-        const ganho = valorApostaAviator * mult;
-        document.getElementById("ganhoAviator").innerText = `Ganho atual: R$ ${ganho.toFixed(2)}`;
+    function reiniciarMines() {
+      document.getElementById("valorMines").value = "";
+      document.getElementById("numMinas").value = "";
+      document.getElementById("minesGrid").innerHTML = "";
+      document.getElementById("valorGanho").innerText = "";
+      document.getElementById("botaoSacar").style.display = "none";
+    }
+
+    function adicionarHistorico(texto, valor) {
+      const historico = document.getElementById("historico");
+      const item = document.createElement("div");
+      item.className = "historico-item";
+      item.innerText = `${texto} | Valor: R$ ${valor.toFixed(2)}`;
+      historico.prepend(item);
+    }
+
+    function mostrarCadastro() {
+      document.getElementById("telaLogin").style.display = "none";
+      document.getElementById("telaCadastro").style.display = "block";
+    }
+
+    function mostrarLogin() {
+      document.getElementById("telaCadastro").style.display = "none";
+      document.getElementById("telaLogin").style.display = "block";
+    }
+
+    function cadastrar() {
+      const email = document.getElementById("emailCadastro").value;
+      const senha = document.getElementById("senhaCadastro").value;
+      if (!email || !senha) {
+        alert("Preencha todos os campos.");
+        return;
+      }
+      localStorage.setItem(`user_${email}`, senha);
+      alert("Cadastro realizado com sucesso!");
+      mostrarLogin();
+    }
+
+    function login() {
+      const email = document.getElementById("emailLogin").value;
+      const senha = document.getElementById("senhaLogin").value;
+      const senhaSalva = localStorage.getItem(`user_${email}`);
+      if (senhaSalva && senhaSalva === senha) {
+        document.getElementById("telaLogin").style.display = "none";
+        document.getElementById("telaJogo").style.display = "block";
+        saldo = 1000;
+        atualizarSaldo();
+      } else {
+        alert("Email ou senha inválidos.");
       }
     }
   </script>
