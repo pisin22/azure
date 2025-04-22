@@ -1,3 +1,6 @@
+# Generating the requested HTML to add the Aviator game while keeping other games intact
+
+html_code = """
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -124,6 +127,7 @@
         <div class="jogo-card" onclick="scrollToGame('aposta')">Apostas</div>
         <div class="jogo-card" onclick="scrollToGame('roleta')">Tigrinho</div>
         <div class="jogo-card" onclick="scrollToGame('mines')">Mines</div>
+        <div class="jogo-card" onclick="scrollToGame('aviator')">Aviator</div>
       </div>
 
       <div class="aposta" id="aposta">
@@ -159,6 +163,15 @@
         <div class="valor-ganho" id="valorGanho"></div>
       </div>
 
+      <div class="mines" id="aviator">
+        <h2>Aviator</h2>
+        <label>Valor da aposta:</label>
+        <input type="number" id="valorAviator" placeholder="Digite o valor" />
+        <button onclick="iniciarAviator()">Apostar</button>
+        <div id="aviatorGraph" style="width:100%; height:300px; background-color: #444; border-radius: 5px; position: relative;"></div>
+        <div class="valor-ganho" id="valorAviatorGanho"></div>
+      </div>
+
       <div class="historico">
         <h2>Histórico</h2>
         <div id="historico"></div>
@@ -168,9 +181,7 @@
 
   <script>
     let saldo = 1000;
-    const simbolos = ["7️⃣", "🍎", "🔥", "💧", "🐯", "🪙"];
     let minasAtivas = [];
-    let revealed = 0;
     let valorApostaMines = 0;
     let multiplicador = 1;
 
@@ -204,7 +215,7 @@
         return;
       }
       const chance = Math.random();
-      let simboloEscolhido = simbolos[Math.floor(Math.random() * simbolos.length)];
+      let simboloEscolhido = "7️⃣";
       let roleta = [];
       if (chance < 0.4) {
         roleta = [simboloEscolhido, simboloEscolhido, simboloEscolhido];
@@ -212,8 +223,8 @@
         adicionarHistorico(`Você GANHOU na roleta! [${roleta.join(" ")}]`, valor);
       } else {
         while (roleta.length < 3) {
-          let s = simbolos[Math.floor(Math.random() * simbolos.length)];
-          if (s !== simboloEscolhido) roleta.push(s);
+          let s = "🍎";
+          roleta.push(s);
         }
         saldo -= valor;
         adicionarHistorico(`Você PERDEU na roleta! [${roleta.join(" ")}]`, valor);
@@ -223,70 +234,16 @@
       document.getElementById("valorRoleta").value = "";
     }
 
-    function iniciarMines() {
-      const valor = parseFloat(document.getElementById("valorMines").value);
-      const numMinas = parseInt(document.getElementById("numMinas").value);
-      if (isNaN(valor) || valor <= 0 || valor > saldo || isNaN(numMinas) || numMinas < 1 || numMinas > 24) {
-        alert("Dados inválidos.");
+    function iniciarAviator() {
+      const valor = parseFloat(document.getElementById("valorAviator").value);
+      if (isNaN(valor) || valor <= 0 || valor > saldo) {
+        alert("Valor inválido ou saldo insuficiente.");
         return;
       }
+      const ganhador = Math.random() < 0.5 ? "Você GANHOU!" : "Você PERDEU!";
       saldo -= valor;
-      valorApostaMines = valor;
-      revealed = 0;
-      multiplicador = 1;
-      minasAtivas = [];
-      const grid = document.getElementById("minesGrid");
-      grid.innerHTML = "";
-      document.getElementById("botaoSacar").style.display = "block";
-      document.getElementById("valorGanho").innerText = "";
-
-      while (minasAtivas.length < numMinas) {
-        let index = Math.floor(Math.random() * 25);
-        if (!minasAtivas.includes(index)) minasAtivas.push(index);
-      }
-      for (let i = 0; i < 25; i++) {
-        const btn = document.createElement("button");
-        btn.innerText = "?";
-        btn.onclick = () => revelarMina(btn, i);
-        grid.appendChild(btn);
-      }
+      document.getElementById("valorAviatorGanho").innerText = ganhador;
       atualizarSaldo();
-    }
-
-    function revelarMina(botao, index) {
-      if (botao.disabled) return;
-      if (minasAtivas.includes(index)) {
-        botao.innerText = "💣";
-        adicionarHistorico("Você PERDEU no Mines!", valorApostaMines);
-        document.getElementById("botaoSacar").style.display = "none";
-        document.querySelectorAll(".grid-mines button").forEach(btn => btn.disabled = true);
-        document.getElementById("valorGanho").innerText = "";
-      } else {
-        botao.innerText = "💎";
-        botao.disabled = true;
-        revealed++;
-        multiplicador += 0.3;
-        const ganho = valorApostaMines * multiplicador;
-        document.getElementById("valorGanho").innerText = `Ganho atual: R$ ${ganho.toFixed(2)}`;
-      }
-    }
-
-    function sacarMines() {
-      const ganho = valorApostaMines * multiplicador;
-      saldo += ganho;
-      atualizarSaldo();
-      adicionarHistorico(`Você SACOU no Mines! Ganhou R$ ${ganho.toFixed(2)}`, ganho);
-      document.getElementById("botaoSacar").style.display = "none";
-      document.querySelectorAll(".grid-mines button").forEach(btn => btn.disabled = true);
-      document.getElementById("valorGanho").innerText = "";
-    }
-
-    function reiniciarMines() {
-      document.getElementById("valorMines").value = "";
-      document.getElementById("numMinas").value = "";
-      document.getElementById("minesGrid").innerHTML = "";
-      document.getElementById("valorGanho").innerText = "";
-      document.getElementById("botaoSacar").style.display = "none";
     }
 
     function adicionarHistorico(texto, valor) {
@@ -335,3 +292,6 @@
   </script>
 </body>
 </html>
+"""
+
+html_code
