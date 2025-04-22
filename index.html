@@ -1,6 +1,3 @@
-# Generating the requested HTML to add the Aviator game while keeping other games intact
-
-html_code = """
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -25,7 +22,7 @@ html_code = """
       max-width: 800px;
       margin: auto;
     }
-    .formulario, .saldo, .aposta, .historico, .mines {
+    .formulario, .saldo, .aposta, .historico, .mines, .aviator {
       background: #222;
       padding: 20px;
       border-radius: 10px;
@@ -97,6 +94,17 @@ html_code = """
     .btn-reiniciar:hover {
       background: #c82333;
     }
+    .aviator-container {
+      text-align: center;
+      margin-top: 20px;
+    }
+    .aviator-btn {
+      background: #ffcc00;
+      color: #111;
+      font-size: 1.2em;
+      padding: 10px 20px;
+      cursor: pointer;
+    }
   </style>
 </head>
 <body>
@@ -127,7 +135,7 @@ html_code = """
         <div class="jogo-card" onclick="scrollToGame('aposta')">Apostas</div>
         <div class="jogo-card" onclick="scrollToGame('roleta')">Tigrinho</div>
         <div class="jogo-card" onclick="scrollToGame('mines')">Mines</div>
-        <div class="jogo-card" onclick="scrollToGame('aviator')">Aviator</div>
+        <div class="jogo-card" onclick="scrollToGame('aviator')">Aviator</div> <!-- Jogo Aviator adicionado aqui -->
       </div>
 
       <div class="aposta" id="aposta">
@@ -163,13 +171,12 @@ html_code = """
         <div class="valor-ganho" id="valorGanho"></div>
       </div>
 
-      <div class="mines" id="aviator">
+      <div class="aviator" id="aviator" style="display:none;">
         <h2>Aviator</h2>
-        <label>Valor da aposta:</label>
-        <input type="number" id="valorAviator" placeholder="Digite o valor" />
-        <button onclick="iniciarAviator()">Apostar</button>
-        <div id="aviatorGraph" style="width:100%; height:300px; background-color: #444; border-radius: 5px; position: relative;"></div>
-        <div class="valor-ganho" id="valorAviatorGanho"></div>
+        <div class="aviator-container">
+          <button class="aviator-btn" onclick="iniciarAviator()">Iniciar Aviator</button>
+        </div>
+        <div id="aviatorResultado" class="valor-ganho"></div>
       </div>
 
       <div class="historico">
@@ -182,6 +189,7 @@ html_code = """
   <script>
     let saldo = 1000;
     let minasAtivas = [];
+    let revealed = 0;
     let valorApostaMines = 0;
     let multiplicador = 1;
 
@@ -215,7 +223,7 @@ html_code = """
         return;
       }
       const chance = Math.random();
-      let simboloEscolhido = "7️⃣";
+      let simboloEscolhido = simbolos[Math.floor(Math.random() * simbolos.length)];
       let roleta = [];
       if (chance < 0.4) {
         roleta = [simboloEscolhido, simboloEscolhido, simboloEscolhido];
@@ -223,8 +231,8 @@ html_code = """
         adicionarHistorico(`Você GANHOU na roleta! [${roleta.join(" ")}]`, valor);
       } else {
         while (roleta.length < 3) {
-          let s = "🍎";
-          roleta.push(s);
+          let s = simbolos[Math.floor(Math.random() * simbolos.length)];
+          if (s !== simboloEscolhido) roleta.push(s);
         }
         saldo -= valor;
         adicionarHistorico(`Você PERDEU na roleta! [${roleta.join(" ")}]`, valor);
@@ -234,64 +242,79 @@ html_code = """
       document.getElementById("valorRoleta").value = "";
     }
 
-    function iniciarAviator() {
-      const valor = parseFloat(document.getElementById("valorAviator").value);
-      if (isNaN(valor) || valor <= 0 || valor > saldo) {
-        alert("Valor inválido ou saldo insuficiente.");
+    function iniciarMines() {
+      const valor = parseFloat(document.getElementById("valorMines").value);
+      const numMinas = parseInt(document.getElementById("numMinas").value);
+      if (isNaN(valor) || valor <= 0 || valor > saldo || isNaN(numMinas) || numMinas < 1 || numMinas > 24) {
+        alert("Dados inválidos.");
         return;
       }
-      const ganhador = Math.random() < 0.5 ? "Você GANHOU!" : "Você PERDEU!";
       saldo -= valor;
-      document.getElementById("valorAviatorGanho").innerText = ganhador;
+      valorApostaMines = valor;
+      revealed = 0;
+      multiplicador = 1;
+      minasAtivas = [];
+      const grid = document.getElementById("minesGrid");
+      grid.innerHTML = "";
+      document.getElementById("botaoSacar").style.display = "block";
+      document.getElementById("valorGanho").innerText = "";
+
+      while (minasAtivas.length < numMinas) {
+        let index = Math.floor(Math.random() * 25);
+        if (!minasAtivas.includes(index)) minasAtivas.push(index);
+      }
+      for (let i = 0; i < 25; i++) {
+        const btn = document.createElement("button");
+        btn.innerText = "?";
+        btn.onclick = () => revelarMina(btn, i);
+        grid.appendChild(btn);
+      }
       atualizarSaldo();
     }
 
-    function adicionarHistorico(texto, valor) {
-      const historico = document.getElementById("historico");
+    function revelarMina(botao, index) {
+      if (botao.disabled) return;
+      if (minasAtivas.includes(index)) {
+        botao.innerText = "💣";
+        adicionarHistorico("Você PERDEU no Mines!", valorApostaMines);
+        document.getElementById("botaoSacar").style.display = "none";
+        document.querySelectorAll(".grid-mines button").forEach(btn => btn.disabled = true);
+        document.getElementById("valorGanho").innerText = "";
+      } else {
+        botao.innerText = "💎";
+        botao.disabled = true;
+        revealed++;
+        multiplicador += 0.3;
+        const ganho = valorApostaMines * multiplicador;
+        document.getElementById("valorGanho").innerText = `Ganho atual: R$ ${ganho.toFixed(2)}`;
+      }
+    }
+
+    function sacarMines() {
+      const ganho = valorApostaMines * multiplicador;
+      saldo += ganho;
+      atualizarSaldo();
+      adicionarHistorico(`Você SACOU no Mines! Ganhou R$ ${ganho.toFixed(2)}`, ganho);
+      document.getElementById("botaoSacar").style.display = "none";
+      document.querySelectorAll(".grid-mines button").forEach(btn => btn.disabled = true);
+      document.getElementById("valorGanho").innerText = "";
+    }
+
+    function adicionarHistorico(mensagem, valor) {
+      const historicoDiv = document.getElementById("historico");
       const item = document.createElement("div");
       item.className = "historico-item";
-      item.innerText = `${texto} | Valor: R$ ${valor.toFixed(2)}`;
-      historico.prepend(item);
+      item.innerText = `${mensagem} - R$ ${valor.toFixed(2)}`;
+      historicoDiv.appendChild(item);
     }
 
-    function mostrarCadastro() {
-      document.getElementById("telaLogin").style.display = "none";
-      document.getElementById("telaCadastro").style.display = "block";
-    }
-
-    function mostrarLogin() {
-      document.getElementById("telaCadastro").style.display = "none";
-      document.getElementById("telaLogin").style.display = "block";
-    }
-
-    function cadastrar() {
-      const email = document.getElementById("emailCadastro").value;
-      const senha = document.getElementById("senhaCadastro").value;
-      if (!email || !senha) {
-        alert("Preencha todos os campos.");
-        return;
-      }
-      localStorage.setItem(`user_${email}`, senha);
-      alert("Cadastro realizado com sucesso!");
-      mostrarLogin();
-    }
-
-    function login() {
-      const email = document.getElementById("emailLogin").value;
-      const senha = document.getElementById("senhaLogin").value;
-      const senhaSalva = localStorage.getItem(`user_${email}`);
-      if (senhaSalva && senhaSalva === senha) {
-        document.getElementById("telaLogin").style.display = "none";
-        document.getElementById("telaJogo").style.display = "block";
-        saldo = 1000;
-        atualizarSaldo();
-      } else {
-        alert("Email ou senha inválidos.");
-      }
+    // Aviator Functions
+    function iniciarAviator() {
+      const resultado = (Math.random() > 0.5) ? "Você GANHOU no Aviator!" : "Você PERDEU no Aviator!";
+      document.getElementById("aviatorResultado").innerText = resultado;
+      saldo += (resultado.includes("GANHOU")) ? 100 : -100;
+      atualizarSaldo();
     }
   </script>
 </body>
 </html>
-"""
-
-html_code
