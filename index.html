@@ -22,7 +22,7 @@
       max-width: 800px;
       margin: auto;
     }
-    .formulario, .saldo, .aposta, .historico, .mines, .aviator {
+    .formulario, .saldo, .aposta, .historico, .mines {
       background: #222;
       padding: 20px;
       border-radius: 10px;
@@ -87,24 +87,6 @@
       color: gold;
       text-align: center;
     }
-    .btn-reiniciar {
-      background: #dc3545;
-      margin-top: 10px;
-    }
-    .btn-reiniciar:hover {
-      background: #c82333;
-    }
-    .aviator-container {
-      text-align: center;
-      margin-top: 20px;
-    }
-    .aviator-btn {
-      background: #ffcc00;
-      color: #111;
-      font-size: 1.2em;
-      padding: 10px 20px;
-      cursor: pointer;
-    }
   </style>
 </head>
 <body>
@@ -135,7 +117,6 @@
         <div class="jogo-card" onclick="scrollToGame('aposta')">Apostas</div>
         <div class="jogo-card" onclick="scrollToGame('roleta')">Tigrinho</div>
         <div class="jogo-card" onclick="scrollToGame('mines')">Mines</div>
-        <div class="jogo-card" onclick="scrollToGame('aviator')">Aviator</div> <!-- Jogo Aviator adicionado aqui -->
       </div>
 
       <div class="aposta" id="aposta">
@@ -166,17 +147,8 @@
         <input type="number" id="numMinas" placeholder="Ex: 3" />
         <button onclick="iniciarMines()">Iniciar</button>
         <div class="grid-mines" id="minesGrid"></div>
-        <button onclick="sacarMines()" style="display:none;" id="botaoSacar">Sacar</button>
-        <button onclick="reiniciarMines()" class="btn-reiniciar">Reiniciar</button>
+        <button onclick="sacarMines()" style="display:none; margin-top:10px;" id="botaoSacar">Sacar</button>
         <div class="valor-ganho" id="valorGanho"></div>
-      </div>
-
-      <div class="aviator" id="aviator" style="display:none;">
-        <h2>Aviator</h2>
-        <div class="aviator-container">
-          <button class="aviator-btn" onclick="iniciarAviator()">Iniciar Aviator</button>
-        </div>
-        <div id="aviatorResultado" class="valor-ganho"></div>
       </div>
 
       <div class="historico">
@@ -188,6 +160,7 @@
 
   <script>
     let saldo = 1000;
+    const simbolos = ["7️⃣", "🍎", "🔥", "💧", "🐯", "🪙"];
     let minasAtivas = [];
     let revealed = 0;
     let valorApostaMines = 0;
@@ -300,20 +273,48 @@
       document.getElementById("valorGanho").innerText = "";
     }
 
-    function adicionarHistorico(mensagem, valor) {
-      const historicoDiv = document.getElementById("historico");
+    function adicionarHistorico(texto, valor) {
+      const historico = document.getElementById("historico");
       const item = document.createElement("div");
       item.className = "historico-item";
-      item.innerText = `${mensagem} - R$ ${valor.toFixed(2)}`;
-      historicoDiv.appendChild(item);
+      item.innerText = `${texto} | Valor: R$ ${valor.toFixed(2)}`;
+      historico.prepend(item);
     }
 
-    // Aviator Functions
-    function iniciarAviator() {
-      const resultado = (Math.random() > 0.5) ? "Você GANHOU no Aviator!" : "Você PERDEU no Aviator!";
-      document.getElementById("aviatorResultado").innerText = resultado;
-      saldo += (resultado.includes("GANHOU")) ? 100 : -100;
-      atualizarSaldo();
+    function mostrarCadastro() {
+      document.getElementById("telaLogin").style.display = "none";
+      document.getElementById("telaCadastro").style.display = "block";
+    }
+
+    function mostrarLogin() {
+      document.getElementById("telaCadastro").style.display = "none";
+      document.getElementById("telaLogin").style.display = "block";
+    }
+
+    function cadastrar() {
+      const email = document.getElementById("emailCadastro").value;
+      const senha = document.getElementById("senhaCadastro").value;
+      if (!email || !senha) {
+        alert("Preencha todos os campos.");
+        return;
+      }
+      localStorage.setItem(`user_${email}`, senha);
+      alert("Cadastro realizado com sucesso!");
+      mostrarLogin();
+    }
+
+    function login() {
+      const email = document.getElementById("emailLogin").value;
+      const senha = document.getElementById("senhaLogin").value;
+      const senhaSalva = localStorage.getItem(`user_${email}`);
+      if (senhaSalva && senhaSalva === senha) {
+        document.getElementById("telaLogin").style.display = "none";
+        document.getElementById("telaJogo").style.display = "block";
+        saldo = 1000;
+        atualizarSaldo();
+      } else {
+        alert("Email ou senha inválidos.");
+      }
     }
   </script>
 </body>
